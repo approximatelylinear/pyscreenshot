@@ -4,6 +4,12 @@ import struct
 from binascii import crc32
 import zlib
 import os.path
+import sys
+
+
+
+assert(sys.platform == "linux2")
+
 
 
 lib = find_library("X11")
