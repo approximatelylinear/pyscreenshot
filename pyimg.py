@@ -1,6 +1,6 @@
 import ctypes as ct
 from ctypes.util import find_library
-
+import struct
 
 
 
@@ -22,6 +22,10 @@ XID = ct.c_ulong
 Colormap = XID
 XPointer = ct.c_char_p
 VisualID = ct.c_ulong
+
+
+
+
 
 class XImage(ct.Structure):
     _fields_ = [
@@ -152,7 +156,9 @@ class Window(object):
 
 root = Window.get_root_window()
 image = root.screenshot(0, 0)
-print x11.XGetPixel(image, 30, 30)
+p = x11.XGetPixel(image, 0, 0)
+
+print "%x" % p  # rrbbgg
 
 # png header
 png = "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A"
