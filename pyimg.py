@@ -5,7 +5,8 @@ from binascii import crc32
 import zlib
 import os.path
 import sys
-
+import urllib
+from cStringIO import StringIO
 
 
 assert(sys.platform == "linux2")
@@ -143,25 +144,25 @@ class XWindowAttributes(ct.Structure):
     
 def png_write(width, height, image):
     def _chunk(name, data=""):
-        length = struct.pack(">i", len(data))
+        length = struct.pack(">I", len(data))
         crc = struct.pack(">i", crc32(name + data))
         return length + name + data + crc
     
     _data = ""
     _data = struct.pack(">8B", 137, 80, 78, 71, 13, 10, 26, 10)
-    _data += _chunk("IHDR", struct.pack(">2i5B", width, height, 8, 2, 0, 0, 0))
+    _data += _chunk("IHDR", struct.pack(">2I5B", width, height, 8, 2, 0, 0, 0))
     
     image_data = ""
     compressor = zlib.compressobj()
-    for y in xrange(height):
+    for y in xrange(1, height+1):
         row = ""
-        for x in xrange(width):
+        for x in xrange(1, width+1):
             p = x11.XGetPixel(image, x, y)
-            p = struct.pack(">i", p)[:3]
+            p = struct.pack(">I", p)[1:]
             row += p
         image_data += compressor.compress(row)
-            
     image_data += compressor.flush()
+    
     _data += _chunk("IDAT", image_data)
     
     _data += _chunk("IEND")
@@ -186,14 +187,18 @@ class Window(object):
     def screenshot(self, x, y, w=None, h=None):
         if w is None: w = self.width
         if h is None: h = self.height
-        image = x11.XGetImage(display, self._window, x, y, w, h, x11.XAllPlanes(), 1);
+        
+        image = x11.XGetImage(display, self._window, x, y, w, h, x11.XAllPlanes(), 1);   
+        image = ct.cast(image, ct.POINTER(XImage))
+        
+        assert(image.contents.depth == 24)
         
         png = png_write(w, h, image)
-        h = open(os.path.expanduser("~/Desktop/test.png"), "wb")
+        h = StringIO()
         h.write(png)
         h.close()
         
-        return image
+        return h
 
 
 
