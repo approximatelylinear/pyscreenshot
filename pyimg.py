@@ -2,6 +2,16 @@ import ctypes as ct
 from ctypes.util import find_library
 
 
+
+
+lib = find_library("X11")
+x11 = ct.cdll.LoadLibrary(lib)
+display = x11.XOpenDisplay(None)
+
+
+
+
+
 # typedef unsigned long VisualID
 # typedef char *XPointer
 # #define Window  uint32_t
@@ -115,21 +125,35 @@ class XWindowAttributes(ct.Structure):
         ("override_redirect", ct.c_bool),
         ("screen", ct.POINTER(Screen)),
     ]
+    
+    
+class Window(object):
+    def __init__(self, window):
+        self._window = window
+        self._attr = XWindowAttributes()
+        ret = x11.XGetWindowAttributes(display, self._window, ct.byref(self._attr))
+        if ret != 1: raise Exception, "couldn't get window attributes"
+        
+    def __getattr__(self, name):
+        return getattr(self._attr, name)
+    
+    @classmethod
+    def get_root_window(cls):
+        return cls(x11.XDefaultRootWindow(display))
+    
+    def screenshot(self, x, y, w, h):
+        image = x11.XGetImage(display, self._window, x, y, w, h, x11.XAllPlanes(), 1);
+        return image
 
-lib = find_library("X11")
-x11 = ct.cdll.LoadLibrary(lib)
-display = x11.XOpenDisplay(None)
-window = x11.XDefaultRootWindow(display)
-image = x11.XGetImage(display, window, 0, 0, 100, 100, x11.XAllPlanes(), 1);
 
-#image_p = ct.cast(image, ct.POINTER(XImage))
+
+
+root = Window.get_root_window()
+image = root.screenshot(0, 0, 100, 100)
 print x11.XGetPixel(image, 30, 30)
 
 
-attributes = XWindowAttributes()
-
-print x11.XGetWindowAttributes(display, window, ct.byref(attributes))
-print attributes.width, attributes.height
+print root.width, root.height
 
 # png header
 png = "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A"
