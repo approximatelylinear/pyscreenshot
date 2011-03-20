@@ -3,6 +3,7 @@ from ctypes.util import find_library
 import struct
 from binascii import crc32
 import zlib
+import os.path
 
 
 lib = find_library("X11")
@@ -182,7 +183,7 @@ class Window(object):
         image = x11.XGetImage(display, self._window, x, y, w, h, x11.XAllPlanes(), 1);
         
         png = png_write(w, h, image)
-        h = open("/home/amoffat/Desktop/test.png", "wb")
+        h = open(os.path.expanduser("~/Desktop/test.png"), "wb")
         h.write(png)
         h.close()
         
