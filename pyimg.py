@@ -141,7 +141,9 @@ class Window(object):
     def get_root_window(cls):
         return cls(x11.XDefaultRootWindow(display))
     
-    def screenshot(self, x, y, w, h):
+    def screenshot(self, x, y, w=None, h=None):
+        if w is None: w = self.width
+        if h is None: h = self.height
         image = x11.XGetImage(display, self._window, x, y, w, h, x11.XAllPlanes(), 1);
         return image
 
@@ -149,11 +151,8 @@ class Window(object):
 
 
 root = Window.get_root_window()
-image = root.screenshot(0, 0, 100, 100)
+image = root.screenshot(0, 0)
 print x11.XGetPixel(image, 30, 30)
-
-
-print root.width, root.height
 
 # png header
 png = "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A"
