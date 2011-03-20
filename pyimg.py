@@ -1,7 +1,8 @@
 import ctypes as ct
 from ctypes.util import find_library
 import struct
-
+from binascii import crc32
+import zlib
 
 
 lib = find_library("X11")
@@ -131,6 +132,36 @@ class XWindowAttributes(ct.Structure):
     ]
     
     
+    
+    
+def png_write(width, height, image):
+    def _chunk(name, data=""):
+        length = struct.pack(">i", len(data))
+        crc = struct.pack(">i", crc32(name + data))
+        return length + name + data + crc
+    
+    _data = ""
+    _data = struct.pack(">8B", 137, 80, 78, 71, 13, 10, 26, 10)
+    _data += _chunk("IHDR", struct.pack(">2i5B", width, height, 8, 2, 0, 0, 0))
+    
+    image_data = ""
+    compressor = zlib.compressobj()
+    for y in xrange(height):
+        row = ""
+        for x in xrange(width):
+            p = x11.XGetPixel(image, x, y)
+            p = struct.pack(">i", p)[:3]
+            row += p
+        image_data += compressor.compress(row)
+            
+    image_data += compressor.flush()
+    _data += _chunk("IDAT", image_data)
+    
+    _data += _chunk("IEND")
+    return _data
+
+    
+    
 class Window(object):
     def __init__(self, window):
         self._window = window
@@ -149,6 +180,12 @@ class Window(object):
         if w is None: w = self.width
         if h is None: h = self.height
         image = x11.XGetImage(display, self._window, x, y, w, h, x11.XAllPlanes(), 1);
+        
+        png = png_write(w, h, image)
+        h = open("/home/amoffat/Desktop/test.png", "wb")
+        h.write(png)
+        h.close()
+        
         return image
 
 
@@ -156,9 +193,3 @@ class Window(object):
 
 root = Window.get_root_window()
 image = root.screenshot(0, 0)
-p = x11.XGetPixel(image, 0, 0)
-
-print "%x" % p  # rrbbgg
-
-# png header
-png = "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A"
